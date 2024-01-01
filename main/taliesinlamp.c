@@ -127,19 +127,36 @@ void app_main(void)
         .atten = ADC_ATTEN_DB_12
     };
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_3, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_4, &config));
 
-    static int adc_raw;
+    static int brightness_raw;
+    static int temperature_raw;
 
     while (1) {
-        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_3, &adc_raw));
-        ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC_CHANNEL_3, adc_raw);
-//        if (do_calibration1_chan3) {
-//            ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan3_handle, adc_raw[0][0], &voltage[0][0]));
-//            ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC_CHANNEL_3, voltage[0][0]);
-//        }
-        set_lamp1_pwm((size_t) adc_raw);
-        set_lamp2_pwm((size_t) adc_raw);
-        vTaskDelay(pdMS_TO_TICKS(200));
+        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_3, &brightness_raw));
+//        ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC_CHANNEL_3, brightness_raw);
+        ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL_4, &temperature_raw));
+//        ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC_CHANNEL_4, temperature_raw);
+
+        ESP_LOGI(TAG,"temp raw %d",temperature_raw);
+
+//        double brightness_factor = brightness_raw / 4095;
+        double warm_factor = ((double)temperature_raw/4095);
+//            double warm_factor = 2300/4095;
+//        warm_factor = .5;
+
+        ESP_LOGI(TAG,"warm %f",warm_factor);
+
+        size_t bulb_base_duty = 8191*(tan((1.54*brightness_raw)/4095)/tan(1.54));
+        size_t warm_bulb_base = bulb_base_duty * warm_factor;
+        size_t cool_bulb_base = bulb_base_duty * (1 - warm_factor);
+
+        set_lamp1_pwm(warm_bulb_base);
+        set_lamp2_pwm(cool_bulb_base);
+
+        ESP_LOGI(TAG, "BrightRaw: %d TempRaw: %d WarmFactor: %6f%% Warm: %d Cool: %d", brightness_raw,temperature_raw,warm_factor,warm_bulb_base,cool_bulb_base);
+
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 

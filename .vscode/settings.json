@@ -10,7 +10,7 @@
     },
     "idf.gitPath": "/usr/bin/git",
     "idf.flashType": "UART",
-    "idf.port": "/dev/cu.usbserial-14110",
+    "idf.port": "/dev/cu.usbserial-14410",
     "files.associations": {
         "adc_oneshot.h": "c"
     },
